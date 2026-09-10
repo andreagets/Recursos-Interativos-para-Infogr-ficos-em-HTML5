@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Infográfico Interativo — Layout C (Pôster Interativo)</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/basecoat.cdn.min.css">
+  <style>
+/* Skip artifact shell — fixed styles served beside every artifact.
+   Complements basecoat; artifacts override --accent for their own identity. */
+:root {
+  color-scheme: light dark;
+  --accent: #2563eb;
+  --accent-contrast: #ffffff;
+  --accent-text: color-mix(in srgb, var(--accent) 72%, #000);
+  --bg: #f8f9fb;
+  --surface: #ffffff;
+  --text: #14171f;
+  --text-muted: #5b6472;
+  --border: rgba(20, 23, 31, 0.10);
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(20, 23, 31, 0.08);
+  --space: 16px;
+}
+/* Theme resolution. Without data-theme the viewer's system preference decides,
+   as it always did. With it, the artifact's own choice wins in BOTH directions:
+   a page that hardcodes one palette must not be handed the opposite set of
+   tokens by the machine it happens to be opened on. The dark values appear
+   twice because a media query cannot be folded into a selector list.
+   The attribute sits inside :where() so these blocks keep the specificity of a
+   bare :root — the page's own <style> is linked after this file and must go on
+   overriding any token it wants, exactly as it could before. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --accent-text: color-mix(in srgb, var(--accent) 78%, #fff);
+    --bg: #101318;
+    --surface: #181c23;
+    --text: #eef1f6;
+    --text-muted: #9aa4b2;
+    --border: rgba(238, 241, 246, 0.12);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+}
+:root:where([data-theme="dark"]) {
+  color-scheme: dark;
+  --accent-text: color-mix(in srgb, var(--accent) 78%, #fff);
+  --bg: #101318;
+  --surface: #181c23;
+  --text: #eef1f6;
+  --text-muted: #9aa4b2;
+  --border: rgba(238, 241, 246, 0.12);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+:root:where([data-theme="light"]) { color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+
+.shell-container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+.shell-section { padding: calc(var(--space) * 2) 0; }
+.shell-grid { display: grid; gap: var(--space); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.shell-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: var(--space); }
+.shell-footer { padding: 24px 0 40px; color: var(--text-muted); font-size: 13px; }
+
+.shell-hero { padding: calc(var(--space) * 3) 0 calc(var(--space) * 2); }
+.shell-hero h1 { font-size: clamp(26px, 4vw, 40px); line-height: 1.15; margin: 0 0 10px; text-wrap: balance; }
+.shell-hero p { color: var(--text-muted); max-width: 60ch; margin: 0; }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--space);
+}
+
+.kpi { display: flex; flex-direction: column; gap: 4px; }
+.kpi .kpi-value { font-size: 28px; font-weight: 650; line-height: 1.1; }
+.kpi .kpi-label { font-size: 13px; color: var(--text-muted); }
+.kpi .kpi-delta { font-size: 12.5px; font-weight: 600; }
+.kpi .kpi-delta.up { color: #0a8f3c; }
+.kpi .kpi-delta.down { color: #cf3131; }
+
+table.shell-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.shell-table th {
+  text-align: left; font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--text-muted); font-weight: 600;
+}
+table.shell-table th, table.shell-table td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--border); }
+table.shell-table td.num, table.shell-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.shell-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+
+.chart-box { width: 100%; min-height: 220px; }
+.chart-box svg { width: 100%; height: auto; display: block; }
+
+.muted { color: var(--text-muted); }
+.accent { color: var(--accent-text); }
+.shell-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent-text);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shell-fade { animation: shell-fade 400ms ease both; }
+  @keyframes shell-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}
+
+</style>
+  
+  <style>
+    :root {
+      --accent: #0f766e;
+      --poster-bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border-soft: #cbd5e1;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --cyan-subtle: #ecfeff;
+      --amber-subtle: #fffbeb;
+      --indigo-subtle: #eef2ff;
+      --emerald-subtle: #ecfdf5;
+      --rose-subtle: #fff1f2;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      background-color: #f1f5f9;
+      color: var(--text-main);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 1.5rem 0.75rem;
+    }
+
+    .poster-canvas {
+      max-width: 1320px;
+      margin: 0 auto;
+      background: var(--poster-bg);
+      border: 2px solid #0f766e;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      position: relative;
+    }
+
+    /* Header Ribbon */
+    .poster-header {
+      text-align: center;
+      border-bottom: 2px dashed #94a3b8;
+      padding-bottom: 1.5rem;
+      margin-bottom: 1.75rem;
+      position: relative;
+    }
+
+    .poster-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #0f766e;
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.85rem;
+      border-radius: 9999px;
+      margin-bottom: 0.5rem;
+    }
+
+    .poster-title {
+      font-size: 2.1rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: #0f172a;
+      margin: 0.35rem 0;
+      letter-spacing: -0.02em;
+    }
+
+    .poster-subtitle {
+      font-size: 1rem;
+      color: #334155;
+      max-width: 780px;
+      margin: 0.25rem auto 0;
+    }
+
+    /* Central Focal Principle */
+    .focal-principle {
+      background: linear-gradient(135deg, #042f2e 0%, #0f766e 100%);
+      color: #ffffff;
+      border-radius: 14px;
+      padding: 1.25rem 1.75rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 20px rgba(15, 118, 110, 0.25);
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #14b8a6;
+    }
+
+    .focal-principle::before {
+      content: "PRINCIPIO NORTEADOR";
+      position: absolute;
+      top: 0.6rem;
+      right: 1.25rem;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: #99f6e4;
+      opacity: 0.85;
+    }
+
+    .focal-text {
+      font-size: 1.15rem;
+      font-weight: 600;
+      line-height: 1.5;
+      margin: 0;
+      max-width: 95%;
+    }
+
+    .focal-text strong {
+      color: #fef08a;
+      text-decoration: underline decoration-thickness 2px;
+    }
+
+    /* Poster Grid */
+    .poster-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 1.25rem;
+    }
+
+    .col-12 { grid-column: span 12; }
+    .col-7 { grid-column: span 7; }
+    .col-5 { grid-column: span 5; }
+    .col-6 { grid-column: span 6; }
+    .col-8 { grid-column: span 8; }
+    .col-4 { grid-column: span 4; }
+
+    /* Poster Zones (panels) */
+    .poster-zone {
+      background: var(--card-bg);
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .poster-zone:hover {
+      border-color: #0f766e;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+    }
+
+    .zone-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.9rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .zone-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0;
+    }
+
+    .zone-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      background: #e2e8f0;
+      color: #1e293b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* 4 Levels Quadrants */
+    .levels-quadrant {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      height: 100%;
+    }
+
+    .quadrant-btn {
+      text-align: left;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 1rem;
+      background: #ffffff;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .quadrant-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(15, 118, 110, 0.15);
+      border-color: #0f766e;
+    }
+
+    .quadrant-btn:focus-visible {
+      outline: 3px solid #0f766e;
+      outline-offset: 2px;
+    }
+
+    .q-level-1 { border-left: 5px solid #0284c7; background: #f0f9ff; }
+    .q-level-2 { border-left: 5px solid #0f766e; background: #f0fdfa; }
+    .q-level-3 { border-left: 5px solid #d97706; background: #fffbeb; }
+    .q-level-4 { border-left: 5px solid #7c3aed; background: #f5f3ff; }
+
+    .q-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.4rem;
+    }
+
+    .q-num {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .q-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .q-desc {
+      font-size: 0.8rem;
+      color: #475569;
+      line-height: 1.35;
+      margin: 0.35rem 0 0.5rem 0;
+    }
+
+    .q-pill {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #0f766e;
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    /* 10 Components Grid */
+    .components-chips {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.6rem;
+    }
+
+    .comp-chip {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0.65rem 0.5rem;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .comp-chip:hover {
+      background: #ecfeff;
+      border-color: #0f766e;
+      transform: translateY(-2px);
+    }
+
+    .comp-chip:focus-visible {
+      outline: 2px solid #0f766e;
+    }
+
+    .comp-icon {
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+
+    .comp-name {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.2;
+    }
+
+    .comp-level-badge {
+      font-size: 0.62rem;
+      font-weight: 600;
+      color: #334155;
+      background: #e2e8f0;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    /* Rule 6x6 Matrix */
+    .rule-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.8rem;
+    }
+
+    .rule-table th {
+      background: #f1f5f9;
+      color: #1e293b;
+      font-weight: 700;
+      padding: 0.5rem 0.6rem;
+      text-align: left;
+      border-bottom: 2px solid #cbd5e1;
+    }
+
+    .rule-table td {
+      padding: 0.5rem 0.6rem;
+      border-bottom: 1px solid #e2e8f0;
+      color: #334155;
+      vertical-align: middle;
+    }
+
+    .rule-table tr:hover td {
+      background-color: #f8fafc;
+    }
+
+    .rule-q {
+      font-weight: 700;
+      color: #0f766e;
+      white-space: nowrap;
+    }
+
+    .rule-tag {
+      background: #ecfdf5;
+      color: #065f46;
+      font-weight: 600;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      display: inline-block;
+      border: 1px solid #a7f3d0;
+    }
+
+    /* 5 Stages Flow */
+    .stages-flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.5rem;
+      position: relative;
+    }
+
+    .stage-card {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0.75rem 0.5rem;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .stage-card:hover {
+      background: #ecfeff;
+      border-color: #0f766e;
+      transform: translateY(-2px);
+    }
+
+    .stage-step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #0f766e;
+      color: #ffffff;
+      font-size: 0.72rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 0.4rem;
+    }
+
+    .stage-card h5 {
+      margin: 0;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .stage-card p {
+      margin: 0.25rem 0 0;
+      font-size: 0.7rem;
+      color: #475569;
+      line-height: 1.25;
+    }
+
+    /* Interactive Quiz */
+    .quiz-container {
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 10px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .quiz-question {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #134e4a;
+      margin: 0;
+    }
+
+    .quiz-options {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.4rem;
+    }
+
+    .quiz-btn {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      padding: 0.6rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #1e293b;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .quiz-btn:hover {
+      border-color: #0f766e;
+      background: #f8fafc;
+    }
+
+    .quiz-btn.correct {
+      background: #ecfdf5 !important;
+      border-color: #059669 !important;
+      color: #065f46 !important;
+    }
+
+    .quiz-btn.incorrect {
+      background: #fff1f2 !important;
+      border-color: #e11d48 !important;
+      color: #9f1239 !important;
+    }
+
+    .quiz-feedback {
+      font-size: 0.8rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 6px;
+      display: none;
+      line-height: 1.35;
+    }
+
+    .quiz-feedback.success {
+      display: block;
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    .quiz-feedback.fail {
+      display: block;
+      background: #fff1f2;
+      color: #9f1239;
+      border: 1px solid #fecdd3;
+    }
+
+    /* Poster Footer */
+    .poster-footer {
+      margin-top: 1.75rem;
+      padding-top: 1.25rem;
+      border-top: 2px dashed #94a3b8;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.82rem;
+      color: #475569;
+    }
+
+    .footer-author {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .footer-license {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    /* Universal Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 1rem;
+      animation: fadeIn 0.15s ease-out;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: #ffffff;
+      border-radius: 14px;
+      max-width: 620px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+      border: 1px solid #cbd5e1;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal-header {
+      padding: 1.1rem 1.5rem;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+      color: #64748b;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+    }
+
+    .modal-close:hover {
+      color: #0f172a;
+      background: #e2e8f0;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: #334155;
+    }
+
+    .modal-preview-box {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+    }
+
+    .modal-preview-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+      letter-spacing: 0.05em;
+    }
+
+    .modal-code-snippet {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 0.6rem 0.85rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin-top: 0.75rem;
+    }
+
+    /* Print settings */
+    @media print {
+      body {
+        background: #ffffff;
+        padding: 0;
+      }
+      .poster-canvas {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        max-width: 100%;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .col-7, .col-5, .col-6, .col-8, .col-4 {
+        grid-column: span 12;
+      }
+      .components-chips {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .stages-flow {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .components-chips {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .levels-quadrant {
+        grid-template-columns: 1fr;
+      }
+      .stages-flow {
+        grid-template-columns: 1fr;
+      }
+      .poster-title {
+        font-size: 1.6rem;
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="poster-canvas">
+    <!-- Header -->
+    <header class="poster-header">
+      <div class="poster-tag">Infográfico Interativo • Modelo Pôster</div>
+      <h1 class="poster-title">Recursos Interativos para Infográficos em HTML5</h1>
+      <p class="poster-subtitle">
+        Guia visual e metodológico para docentes e estudantes universitários desenvolverem narrativas visuais orientadas a dados e significado informacional.
+      </p>
+    </header>
+
+    <!-- 1. Centro do Pôster: Princípio Central -->
+    <section class="focal-principle" aria-label="Princípio Central do Infográfico">
+      <p class="focal-text">
+        🎯 <strong>Princípio Norteador:</strong> O recurso dinâmico deve responder estritamente à <u>finalidade informacional</u> do infográfico, e não ser usado apenas como adorno ou mero efeito visual. Toda interação deve reduzir a carga cognitiva e aprofundar o entendimento dos dados.
+      </p>
+    </section>
+
+    <!-- Main Poster Grid -->
+    <div class="poster-grid">
+
+      <!-- 2. Zona: 4 Níveis de Interação -->
+      <section class="poster-zone col-7" aria-labelledby="zone-levels-title">
+        <div class="zone-head">
+          <h2 class="zone-title" id="zone-levels-title">
+            <span>🧭</span> Os 4 Níveis de Interação
+          </h2>
+          <span class="zone-badge">Taxonomia</span>
+        </div>
+        <p class="muted" style="margin-top:0; font-size:0.82rem; margin-bottom:0.75rem;">
+          Clique em qualquer quadrante para examinar propósito pedagógico e exemplos interativos:
+        </p>
+        
+        <div class="levels-quadrant">
+          <!-- Quadrant 1 -->
+          <button type="button" class="quadrant-btn q-level-1" onclick="openModal('level-info')">
+            <div>
+              <div class="q-header">
+                <span class="q-title">1. Informacional</span>
+                <span class="q-num">NV. 01</span>
+              </div>
+              <p class="q-desc">Aprofundar informação sob demanda sem poluir a cena visual.</p>
+            </div>
+            <div class="q-pill">Tooltip • Hotspot • Accordion &rarr;</div>
+          </button>
+
+          <!-- Quadrant 2 -->
+          <button type="button" class="quadrant-btn q-level-2" onclick="openModal('level-nav')">
+            <div>
+              <div class="q-header">
+                <span class="q-title">2. Navegacional</span>
+                <span class="q-num">NV. 02</span>
+              </div>
+              <p class="q-desc">Controlar percursos de leitura, sequenciamento e ritmo cognitivo.</p>
+            </div>
+            <div class="q-pill">Abas • Stepper • Timelines &rarr;</div>
+          </button>
+
+          <!-- Quadrant 3 -->
+          <button type="button" class="quadrant-btn q-level-3" onclick="openModal('level-exp')">
+            <div>
+              <div class="q-header">
+                <span class="q-title">3. Exploratório</span>
+                <span class="q-num">NV. 03</span>
+              </div>
+              <p class="q-desc">Permitir segmentação, filtros e cruzamento ativo de variáveis.</p>
+            </div>
+            <div class="q-pill">Filtros • Gráficos • Sliders &rarr;</div>
+          </button>
+
+          <!-- Quadrant 4 -->
+          <button type="button" class="quadrant-btn q-level-4" onclick="openModal('level-trans')">
+            <div>
+              <div class="q-header">
+                <span class="q-title">4. Transformacional</span>
+                <span class="q-num">NV. 04</span>
+              </div>
+              <p class="q-desc">Modificar parâmetros reais de modelos e simular cenários futuros.</p>
+            </div>
+            <div class="q-pill">Simuladores • Calculadoras &rarr;</div>
+          </button>
+        </div>
+      </section>
+
+      <!-- 6. Zona: Quiz Interativo de Fixação -->
+      <section class="poster-zone col-5" aria-labelledby="zone-quiz-title">
+        <div class="zone-head">
+          <h2 class="zone-title" id="zone-quiz-title">
+            <span>⚡</span> Quiz Rápido: Recurso &times; Finalidade
+          </h2>
+          <span class="zone-badge" id="quiz-counter">Desafio 1 de 3</span>
+        </div>
+
+        <div class="quiz-container">
+          <p class="quiz-question" id="quiz-question-text">
+            Um infográfico precisa comparar a evolução temporal de três indicadores sem sobrecarregar a tela ao mesmo tempo. Qual recurso é o mais recomendado?
+          </p>
+
+          <div class="quiz-options" id="quiz-options-container">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <div id="quiz-feedback-box" class="quiz-feedback"></div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.25rem;">
+            <span style="font-size:0.75rem; color:#0f766e; font-weight:600;" id="quiz-score-badge">Acertos: 0</span>
+            <button class="btn btn-sm btn-outline no-print" id="quiz-next-btn" style="display:none; font-size:0.75rem; padding:0.25rem 0.6rem;" onclick="nextQuiz()">Próxima questão &rarr;</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Zona: 10 Componentes HTML5 -->
+      <section class="poster-zone col-12" aria-labelledby="zone-comp-title">
+        <div class="zone-head">
+          <h2 class="zone-title" id="zone-comp-title">
+            <span>🧩</span> Os 10 Componentes Interativos em HTML5
+          </h2>
+          <span class="zone-badge">Biblioteca de Recursos</span>
+        </div>
+        <p class="muted" style="margin-top:0; font-size:0.82rem; margin-bottom:0.75rem;">
+          Clique em cada componente para visualizar estrutura técnica nativa, aplicabilidade instrucional e microexemplo em tempo real:
+        </p>
+
+        <div class="components-chips">
+          <button type="button" class="comp-chip" onclick="openComponentModal('tooltip')">
+            <span class="comp-icon">💬</span>
+            <span class="comp-name">1. Tooltip</span>
+            <span class="comp-level-badge">Informacional</span>
+          </button>
+
+          <button type="button" class="comp-chip" onclick="openComponentModal('hotspot')">
+            <span class="comp-icon">📍</span>
+            <span class="comp-name">2. Hotspot</span>
+            <span class="comp-level-badge">Informacional</span>
+          </button>
+
+          <button type="button" class="comp-chip" onclick="openComponentModal('accordion')">
+            <span class="comp-icon">🗂️</span>
+            <span class="comp-name">3. Accordion</span>
+            <span class="comp-level-badge">Informacional</span>
+          </button>
+
+          <button type="button" class="comp-chip" onclick="openComponentModal('tabs')">
+            <span class="comp-icon">📑</span>
+            <span class="comp-name">4. Abas (Tabs)</span>
+            <span class="comp-level-badge">Navegacional</span>
+          </button>
+
+          <button type="button" class="comp-chip" onclick="openComponentModal('stepper')">
+            <span class="comp-icon">👣</span>
+            <span class="comp-name">5. Stepper</span>
+            <span class="comp-level-badge">Navegacional</span>
+          </button>
+
+          <button type="button" class="comp-chip" onclick="openComponentModal('timeline')">
+            <span class="comp-icon">⏳</span>
+            <span class="comp-name">6. Timeline</span>
+            <span class="comp-level-badge">Navegacional</span>
+          </button>
+
+          <button type="button" class="comp-chip" onclick="openComponentModal('filtros')">
+            <span class="comp-icon">🔍</span>
+            <span class="comp-name">7. Filtros</span>
+            <span class="comp-level-badge">Exploratório</span>
+          </button>
+
+          <button type="button" class="comp-chip" onclick="openComponentModal('grafico')">
+            <span class="comp-icon">📊</span>
+            <span class="comp-name">8. Gráfico</span>
+            <span class="comp-level-badge">Exploratório</span>
+          </button>
+
+          <button type="button" class="comp-chip" onclick="openComponentModal('slider')">
+            <span class="comp-icon">🎚️</span>
+            <span class="comp-name">9. Slider</span>
+            <span class="comp-level-badge">Exploratório/Transf.</span>
+          </button>
+
+          <button type="button" class="comp-chip" onclick="openComponentModal('modal')">
+            <span class="comp-icon">🪟</span>
+            <span class="comp-name">10. Modal</span>
+            <span class="comp-level-badge">Informacional</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 4. Zona: Regra 6x6 -->
+      <section class="poster-zone col-7" aria-labelledby="zone-6x6-title">
+        <div class="zone-head">
+          <h2 class="zone-title" id="zone-6x6-title">
+            <span>📐</span> Matriz Regra 6&times;6 (Perguntas &times; Representação &times; Interação)
+          </h2>
+          <span class="zone-badge">Planejamento Visual</span>
+        </div>
+        <p class="muted" style="margin-top:0; font-size:0.8rem; margin-bottom:0.6rem;">
+          Conexão direta entre o tipo de questionamento cognitivo e a modelagem gráfica mais eficiente:
+        </p>
+
+        <div style="overflow-x:auto;">
+          <table class="rule-table" summary="Matriz com as 6 perguntas e suas representações gráficas e interativas correspondentes">
+            <thead>
+              <tr>
+                <th scope="col">Pergunta-Chave</th>
+                <th scope="col">Representação Visual</th>
+                <th scope="col">Recurso Interativo Recomendado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="rule-q">1. Quem? / O quê?</td>
+                <td>Ilustração figurativa, retratos, ícones</td>
+                <td><span class="rule-tag">Hotspots com tooltips reveladores</span></td>
+              </tr>
+              <tr>
+                <td class="rule-q">2. Quanto?</td>
+                <td>Gráficos estatísticos (barras, linhas, pizza)</td>
+                <td><span class="rule-tag">Filtro de métricas &amp; hover com valores</span></td>
+              </tr>
+              <tr>
+                <td class="rule-q">3. Onde?</td>
+                <td>Mapas coropléticos, diagramas de rede</td>
+                <td><span class="rule-tag">Zoom interativo, camadas e pinos clicáveis</span></td>
+              </tr>
+              <tr>
+                <td class="rule-q">4. Quando?</td>
+                <td>Linhas do tempo (timelines), diagramas Gantt</td>
+                <td><span class="rule-tag">Controle deslizante de épocas / Stepper</span></td>
+              </tr>
+              <tr>
+                <td class="rule-q">5. Como?</td>
+                <td>Fluxogramas, diagramas de processos</td>
+                <td><span class="rule-tag">Etapas expansíveis passo a passo</span></td>
+              </tr>
+              <tr>
+                <td class="rule-q">6. Por quê?</td>
+                <td>Gráficos multivariáveis, causa e efeito</td>
+                <td><span class="rule-tag">Simulador paramétrico de cenários</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 5. Zona: Método em 5 Momentos (Costa, 2015) -->
+      <section class="poster-zone col-5" aria-labelledby="zone-costa-title">
+        <div class="zone-head">
+          <h2 class="zone-title" id="zone-costa-title">
+            <span>🔬</span> Método em 5 Momentos (Costa, 2015)
+          </h2>
+          <span class="zone-badge">Metodologia</span>
+        </div>
+        <p class="muted" style="margin-top:0; font-size:0.8rem; margin-bottom:0.6rem;">
+          Fluxo sistemático de concepção e desenvolvimento de infográficos instrucionais:
+        </p>
+
+        <div class="stages-flow">
+          <button type="button" class="stage-card" onclick="openStageModal(1)">
+            <span class="stage-step-num">1</span>
+            <h5>Definição</h5>
+            <p>Objetivo pedagógico e público-alvo</p>
+          </button>
+
+          <button type="button" class="stage-card" onclick="openStageModal(2)">
+            <span class="stage-step-num">2</span>
+            <h5>Pesquisa</h5>
+            <p>Coleta de dados e validação de fontes</p>
+          </button>
+
+          <button type="button" class="stage-card" onclick="openStageModal(3)">
+            <span class="stage-step-num">3</span>
+            <h5>Seleção</h5>
+            <p>Filtragem informacional essencial</p>
+          </button>
+
+          <button type="button" class="stage-card" onclick="openStageModal(4)">
+            <span class="stage-step-num">4</span>
+            <h5>Layout</h5>
+            <p>SQVID + Matriz 6&times;6</p>
+          </button>
+
+          <button type="button" class="stage-card" onclick="openStageModal(5)">
+            <span class="stage-step-num">5</span>
+            <h5>Implementação</h5>
+            <p>HTML5, semântica e microinteração</p>
+          </button>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- 7. Rodapé Obrigatório -->
+    <footer class="poster-footer">
+      <div>
+        <span>Autoria acadêmica e curadoria: </span>
+        <strong class="footer-author">Andréa Soares Rocha da Silva</strong>
+      </div>
+      <div>
+        <span class="footer-license">Todos os direitos reservados (reprodução proibida sem autorização)</span>
+      </div>
+      <div class="no-print">
+        <button class="btn btn-sm btn-outline" onclick="window.print()" title="Imprimir pôster em papel ou salvar em PDF">
+          🖨️ Imprimir / Salvar em PDF
+        </button>
+      </div>
+    </footer>
+  </main>
+
+  <!-- Universal Interactive Modal -->
+  <div id="poster-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title-text" onclick="handleBackdropClick(event)">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title-text">Título do Recurso</h3>
+        <button class="modal-close" onclick="closeModal()" aria-label="Fechar modal">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body-content">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Data store for the 4 Levels of Interaction
+    const LEVELS_DATA = {
+      'level-info': {
+        title: 'Nível 1: Informacional (Aprofundar Informação)',
+        badge: 'Nível 1',
+        description: 'Focado em apresentar detalhes sob demanda visual do usuário, sem sobrecarregar a primeira camada da interface.',
+        pedagogy: 'Ideal para glossários, definições conceituais breves, fontes de referência e notas técnicas complementares.',
+        components: 'Tooltips (dicas flutuantes), Hotspots pontuais em ilustrações anatômicas ou técnicas, Accordions expansíveis.',
+        code: '<details class="card">\n  <summary>Termo Técnico (Clique para expandir)</summary>\n  <p>Definição detalhada sem dispersar a leitura inicial.</p>\n</details>',
+        demo: `
+          <div style="background:#fff; border:1px solid #cbd5e1; border-radius:8px; padding:0.75rem;">
+            <p style="margin:0 0 0.5rem 0; font-size:0.85rem;">Passe o mouse ou toque no termo em destaque:</p>
+            <span style="border-bottom:2px dotted #0f766e; color:#0f766e; font-weight:700; cursor:help;" title="HTML5 Semântico: marcação orientada ao significado da informação, garantindo acessibilidade a letores de tela.">
+              [HTML5 Semântico ℹ️]
+            </span>
+            <span style="font-size:0.85rem; color:#475569;"> permite que infográficos sejam interpretados por tecnologias assistivas.</span>
+          </div>
+        `
+      },
+      'level-nav': {
+        title: 'Nível 2: Navegacional (Controlar o Percurso)',
+        badge: 'Nível 2',
+        description: 'Capacita o leitor a escolher a ordem cronológica, temática ou lógica da exploração do conteúdo.',
+        pedagogy: 'Reduz a sobrecarga de rolagem contínua e estimula o ritmo cognitivo autônomo do estudante universitário.',
+        components: 'Abas por temas (Tabs), Passos sequenciais guiados (Steppers), Linhas do tempo cronológicas (Timelines).',
+        code: '<nav role="tablist">\n  <button role="tab" aria-selected="true">Fase A</button>\n  <button role="tab">Fase B</button>\n</nav>',
+        demo: `
+          <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
+            <button class="btn btn-sm btn-primary" onclick="this.parentElement.nextElementSibling.innerHTML='Exibindo: Conteúdo da Dimensão Teórica.'">Teoria</button>
+            <button class="btn btn-sm btn-outline" onclick="this.parentElement.nextElementSibling.innerHTML='Exibindo: Aplicação empírica e estudos de caso.'">Aplicação</button>
+          </div>
+          <div style="background:#fff; padding:0.6rem; border-radius:6px; border:1px solid #cbd5e1; font-size:0.85rem; color:#1e293b;">
+            Exibindo: Conteúdo da Dimensão Teórica.
+          </div>
+        `
+      },
+      'level-exp': {
+        title: 'Nível 3: Exploratório (Explorar os Dados)',
+        badge: 'Nível 3',
+        description: 'Permite que o usuário cruze dados, aplique filtros categóricos e examine parcelas específicas do corpus de informação.',
+        pedagogy: 'Promove aprendizagem ativa por descoberta e análise comparativa de evidências empíricas.',
+        components: 'Gráficos interativos com hover e troca de séries, filtros multicritério, seletores de escopo temporal.',
+        code: '<select onchange="atualizarGrafico(this.value)">\n  <option value="todos">Todas as Regiões</option>\n  <option value="norte">Região Norte</option>\n</select>',
+        demo: `
+          <div style="display:flex; flex-direction:column; gap:0.5rem;">
+            <label style="font-size:0.8rem; font-weight:600; color:#334155;">Simular filtro por público:</label>
+            <select class="input" style="padding:0.35rem; font-size:0.82rem;" onchange="document.getElementById('demo-filter-result').innerText = 'Filtro ativo: ' + this.value;">
+              <option value="Docentes de Ensino Superior">Docentes de Ensino Superior</option>
+              <option value="Pesquisadores e Pós-graduandos">Pesquisadores e Pós-graduandos</option>
+              <option value="Estudantes de Graduação">Estudantes de Graduação</option>
+            </select>
+            <div id="demo-filter-result" style="font-size:0.8rem; color:#0f766e; font-weight:600;">
+              Filtro ativo: Docentes de Ensino Superior
+            </div>
+          </div>
+        `
+      },
+      'level-trans': {
+        title: 'Nível 4: Transformacional (Simular & Modificar Variáveis)',
+        badge: 'Nível 4',
+        description: 'Permite manipular coeficientes numéricos e modelos matemáticos para ver em tempo real causas e consequências.',
+        pedagogy: 'Promove pensamento crítico de alto nível (Bloom), compreensão de sistemas complexos e raciocínio probabilístico.',
+        components: 'Calculadoras paramétricas, simuladores de variáveis dinâmicas, sliders de sensibilidade.',
+        code: '<input type="range" min="0" max="100" oninput="calcularImpacto(this.value)">',
+        demo: `
+          <div style="background:#fff; padding:0.75rem; border-radius:8px; border:1px solid #cbd5e1;">
+            <label style="font-size:0.8rem; font-weight:700; color:#0f172a; display:flex; justify-content:space-between;">
+              <span>Horas semanais dedicadas ao infográfico:</span>
+              <span id="trans-val" style="color:#0f766e;">4h</span>
+            </label>
+            <input type="range" min="1" max="15" value="4" style="width:100%; margin:0.4rem 0;" oninput="document.getElementById('trans-val').innerText = this.value + 'h'; document.getElementById('trans-ret').innerText = (this.value * 12) + '% de ganho na retenção conceitual';">
+            <div id="trans-ret" style="font-size:0.85rem; font-weight:700; color:#059669; margin-top:0.25rem;">
+              48% de ganho na retenção conceitual
+            </div>
+          </div>
+        `
+      }
+    };
+
+    // Data for the 10 Components
+    const COMPONENTS_DATA = {
+      'tooltip': {
+        title: '1. Tooltip (Dica de Contexto)',
+        level: 'Nível 1 • Informacional',
+        purpose: 'Exibir breves explicações ou metadados complementares quando o cursor repousa sobre um elemento, preservando o layout limpo.',
+        whenToUse: 'Siglas técnicas, notas bibliográficas, fontes de dados e definições de uma frase.',
+        code: '<span tabindex="0" class="has-tooltip" data-tooltip="Definição da ABNT">NBR 10520</span>',
+        interactiveDemo: `
+          <div style="text-align:center; padding:1rem; background:#fff; border-radius:6px; border:1px dashed #94a3b8;">
+            <span style="font-weight:700; color:#0f766e; text-decoration:underline; cursor:help;" title="Recurso que reduz o cluttering (poluição visual) em diagramas densos.">
+              Passe o mouse aqui para testar o Tooltip!
+            </span>
+          </div>
+        `
+      },
+      'hotspot': {
+        title: '2. Hotspot (Ponto de Interesse Clicável)',
+        level: 'Nível 1 • Informacional',
+        purpose: 'Pontos focais demarcados sobre uma ilustração, mapa anatômico ou foto de equipamento para desencadear revelação focal.',
+        whenToUse: 'Partes de uma célula, componentes de uma máquina, pontos críticos de uma estrutura física.',
+        code: '<button class="hotspot" style="top:30%; left:50%;" aria-label="Ver núcleo celular"></button>',
+        interactiveDemo: `
+          <div style="position:relative; height:110px; background:#e2e8f0; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+            <span style="font-size:0.85rem; color:#475569;">Esquema Gráfico com 2 Hotspots</span>
+            <button style="position:absolute; top:20px; left:40px; background:#0f766e; color:#fff; border:none; width:26px; height:26px; border-radius:50%; font-weight:800; cursor:pointer;" onclick="alert('Hotspot 1: Câmara de combustão ativada')">1</button>
+            <button style="position:absolute; bottom:20px; right:40px; background:#d97706; color:#fff; border:none; width:26px; height:26px; border-radius:50%; font-weight:800; cursor:pointer;" onclick="alert('Hotspot 2: Sistema de exaustão monitorado')">2</button>
+          </div>
+        `
+      },
+      'accordion': {
+        title: '3. Accordion (Expandir / Recolher)',
+        level: 'Nível 1 • Informacional',
+        purpose: 'Segmentar blocos densos de texto em cabeçalhos recolhíveis, permitindo leitura seletiva vertical.',
+        whenToUse: 'Listas de procedimentos metodológicos, perguntas frequentes, argumentos prós e contras.',
+        code: '<details>\n  <summary>Fase de Levantamento de Dados</summary>\n  <p>Descrição pormenorizada dos instrumentos aplicados...</p>\n</details>',
+        interactiveDemo: `
+          <details style="background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:0.5rem;">
+            <summary style="font-weight:700; color:#0f766e; cursor:pointer;">Clique para expandir a etapa metodológica</summary>
+            <p style="margin:0.5rem 0 0 0; font-size:0.85rem; color:#334155;">
+              Aqui constam detalhes que o leitor só lê caso tenha real interesse no aprofundamento daquele método.
+            </p>
+          </details>
+        `
+      },
+      'tabs': {
+        title: '4. Abas (Tabs Temáticas)',
+        level: 'Nível 2 • Navegacional',
+        purpose: 'Compartilhar o mesmo espaço visual entre grupos alternativos de dados sobre o mesmo tema.',
+        whenToUse: 'Visão comparativa: Brasil vs Mundo; Abordagem Qualitativa vs Quantitativa; Antes vs Depois.',
+        code: '<div role="tablist">\n  <button class="active">Grupo A</button>\n  <button>Grupo B</button>\n</div>',
+        interactiveDemo: `
+          <div style="background:#fff; border:1px solid #cbd5e1; border-radius:8px; padding:0.75rem;">
+            <div style="display:flex; gap:0.4rem; border-bottom:1px solid #e2e8f0; padding-bottom:0.5rem;">
+              <button id="tab-demo-btn1" style="font-weight:700; background:#0f766e; color:#fff; border:none; padding:0.25rem 0.6rem; border-radius:4px; cursor:pointer;" onclick="switchDemoTab(1)">Visão A: Teoria</button>
+              <button id="tab-demo-btn2" style="font-weight:600; background:#f1f5f9; color:#334155; border:none; padding:0.25rem 0.6rem; border-radius:4px; cursor:pointer;" onclick="switchDemoTab(2)">Visão B: Prática</button>
+            </div>
+            <div id="tab-demo-content" style="padding-top:0.5rem; font-size:0.85rem; color:#1e293b;">
+              Fundamentos teóricos de infografia e cognição visual.
+            </div>
+          </div>
+        `
+      },
+      'stepper': {
+        title: '5. Stepper (Guia Passo a Passo)',
+        level: 'Nível 2 • Navegacional',
+        purpose: 'Conduzir o estudante através de uma sequência rigorosa onde a etapa subsequente depende da anterior.',
+        whenToUse: 'Protocolos de laboratório, passos de um algoritmo, demonstrações matemáticas guiadas.',
+        code: '<ol class="stepper">\n  <li class="completed">Etapa 1: Coleta</li>\n  <li class="active">Etapa 2: Análise</li>\n</ol>',
+        interactiveDemo: `
+          <div style="background:#fff; border:1px solid #cbd5e1; border-radius:8px; padding:0.75rem; text-align:center;">
+            <div style="font-size:0.85rem; font-weight:700; color:#0f766e;" id="stepper-status">Passo 1 de 3: Identificação do Fenômeno</div>
+            <div style="margin-top:0.6rem; display:flex; justify-content:center; gap:0.5rem;">
+              <button class="btn btn-sm btn-outline" onclick="changeStep(-1)">Anterior</button>
+              <button class="btn btn-sm btn-primary" onclick="changeStep(1)">Próximo</button>
+            </div>
+          </div>
+        `
+      },
+      'timeline': {
+        title: '6. Timeline (Linha do Tempo Interativa)',
+        level: 'Nível 2 • Navegacional',
+        purpose: 'Estruturar eventos em ordem diacrônica, oferecendo visão panorâmica com foco em marcos críticos.',
+        whenToUse: 'Evolução histórica de conceitos, cronogramas de projetos científicos, ciclos biológicos.',
+        code: '<div class="timeline-event" data-year="2015">\n  <strong>2015:</strong> Método de Costa\n</div>',
+        interactiveDemo: `
+          <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:0.75rem; border-radius:8px; border:1px solid #cbd5e1;">
+            <button class="btn btn-sm" style="font-size:0.75rem;" onclick="setTimelineYear('1990: Início da Web e infográficos estáticos')">1990</button>
+            <span style="color:#94a3b8;">&bull;&bull;&bull;</span>
+            <button class="btn btn-sm" style="font-size:0.75rem;" onclick="setTimelineYear('2014: Chegada oficial do HTML5 e Canvas/SVG nativo')">2014</button>
+            <span style="color:#94a3b8;">&bull;&bull;&bull;</span>
+            <button class="btn btn-sm" style="font-size:0.75rem;" onclick="setTimelineYear('Hoje: Infográficos interativos densos e responsivos')">Atual</button>
+          </div>
+          <div id="timeline-echo" style="margin-top:0.5rem; font-size:0.82rem; color:#0f766e; font-weight:600; text-align:center;">
+            Clique nos anos acima para navegar na cronologia.
+          </div>
+        `
+      },
+      'filtros': {
+        title: '7. Filtros Multicritério',
+        level: 'Nível 3 • Exploratório',
+        purpose: 'Permitir que o usuário isole subconjuntos de dados sem sair do mesmo espaço gráfico.',
+        whenToUse: 'Infográficos demográficos, tabelas comparativas de universidades, coleções iconográficas.',
+        code: '<button onclick="filtrar(\'categoriaA\')">Apenas Categoria A</button>',
+        interactiveDemo: `
+          <div style="display:flex; gap:0.4rem; margin-bottom:0.5rem;">
+            <button class="btn btn-sm btn-outline" onclick="filterMini('todos')">Todos (4)</button>
+            <button class="btn btn-sm btn-outline" onclick="filterMini('exatas')">Exatas (2)</button>
+            <button class="btn btn-sm btn-outline" onclick="filterMini('humanas')">Humanas (2)</button>
+          </div>
+          <div id="filter-mini-items" style="display:flex; gap:0.4rem; font-size:0.75rem;">
+            <span class="badge" style="background:#e0f2fe; color:#0369a1;">Física (Exatas)</span>
+            <span class="badge" style="background:#e0f2fe; color:#0369a1;">Cálculo (Exatas)</span>
+            <span class="badge" style="background:#fef3c7; color:#b45309;">História (Humanas)</span>
+            <span class="badge" style="background:#fef3c7; color:#b45309;">Sociologia (Humanas)</span>
+          </div>
+        `
+      },
+      'grafico': {
+        title: '8. Gráfico Interativo com Hover',
+        level: 'Nível 3 • Exploratório',
+        purpose: 'Visualizar padrões quantitativos, permitindo inspecionar valores exatos ao passar o mouse ou focar.',
+        whenToUse: 'Séries temporais, correlações estatísticas, distribuição percentual de dados de pesquisas.',
+        code: 'window.skipChart.bar(element, { labels: [...], values: [...] })',
+        interactiveDemo: `
+          <div style="background:#fff; border:1px solid #cbd5e1; border-radius:8px; padding:0.5rem; height:120px; display:flex; align-items:flex-end; gap:12px; justify-content:center;">
+            <div style="width:36px; height:60%; background:#0f766e; border-radius:4px 4px 0 0; cursor:pointer;" title="2022: 60% de adesão" onclick="alert('Ano 2022: 60% de adesão a recursos dinâmicos')"></div>
+            <div style="width:36px; height:80%; background:#0f766e; border-radius:4px 4px 0 0; cursor:pointer;" title="2023: 80% de adesão" onclick="alert('Ano 2023: 80% de adesão a recursos dinâmicos')"></div>
+            <div style="width:36px; height:95%; background:#059669; border-radius:4px 4px 0 0; cursor:pointer;" title="2024: 95% de adesão" onclick="alert('Ano 2024: 95% de adesão a recursos dinâmicos')"></div>
+          </div>
+          <p style="font-size:0.75rem; text-align:center; color:#64748b; margin:0.3rem 0 0 0;">Toque em cada barra para inspecionar a taxa exata.</p>
+        `
+      },
+      'slider': {
+        title: '9. Slider (Controle Deslizante de Faixa)',
+        level: 'Nível 3 e 4 • Exploratório / Transformacional',
+        purpose: 'Permitir ajustes contínuos de valores numéricos para observar a resposta imediata da interface gráfica.',
+        whenToUse: 'Simulação de dosagens químicas, variação de taxas de juros, escala de tempo histórica.',
+        code: '<input type="range" min="0" max="100" value="50" oninput="ajustar(this.value)">',
+        interactiveDemo: `
+          <div style="background:#fff; border:1px solid #cbd5e1; border-radius:8px; padding:0.75rem;">
+            <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:700;">
+              <span>Volume de Amostras:</span>
+              <span id="slider-demo-val" style="color:#0f766e;">250</span>
+            </div>
+            <input type="range" min="50" max="1000" step="50" value="250" style="width:100%; margin:0.5rem 0;" oninput="document.getElementById('slider-demo-val').innerText = this.value; document.getElementById('slider-demo-result').innerText = 'Margem de erro estimada: ±' + (100 / Math.sqrt(this.value)).toFixed(1) + '%';">
+            <div id="slider-demo-result" style="font-size:0.8rem; color:#475569;">Margem de erro estimada: ±6.3%</div>
+          </div>
+        `
+      },
+      'modal': {
+        title: '10. Janela Modal (Deep Dive Informativo)',
+        level: 'Nível 1 • Informacional',
+        purpose: 'Isolar temporariamente a atenção do usuário para expor estudo de caso minucioso, vídeo demonstrativo ou formulário.',
+        whenToUse: 'Fichas técnicas completas, perfis de pesquisadores, notas metodológicas extensas. Priorizar elementos nativos, como details, button e nav.',
+        code: '<dialog id="modalDialog">\n  <h3>Título</h3>\n  <button onclick="modalDialog.close()">Fechar</button>\n</dialog>',
+        interactiveDemo: `
+          <div style="background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:0.75rem; text-align:center;">
+            <p style="font-size:0.82rem; color:#334155; margin:0 0 0.5rem 0;">Você está interagindo com um modal exatamente neste momento!</p>
+            <span class="badge" style="background:#ecfdf5; color:#065f46;">Acessível via tecla ESC e foco encapsulado</span>
+          </div>
+        `
+      }
+    };
+
+    // Data for Costa (2015) - 5 Stages
+    const COSTA_STAGES = {
+      1: {
+        title: 'Momento 1: Definição',
+        desc: 'Delimitação clara do objetivo informacional pedagógico e caracterização do perfil do estudante universitário ou público-alvo.',
+        actions: [
+          'Definir a pergunta central que o infográfico irá responder.',
+          'Identificar restrições de tempo cognitivo e mídia de publicação.',
+          'Evitar adicionar recursos antes de ter a finalidade consolidada.'
+        ]
+      },
+      2: {
+        title: 'Momento 2: Pesquisa de Dados',
+        desc: 'Levantamento rigoroso das fontes científicas, repositórios de dados abertos e estatísticas validadas.',
+        actions: [
+          'Checar a procedência de cada índice numérico.',
+          'Estruturar dados brutos em planilhas ou matrizes relacionais.',
+          'Registrar fontes com metadados para atribuição precisa no rodapé.'
+        ]
+      },
+      3: {
+        title: 'Momento 3: Seleção de Dados',
+        desc: 'Filtragem editorial para eliminar ruídos, redundâncias e dados periféricos que geram distração.',
+        actions: [
+          'Aplicar o princípio de "menos é mais" na carga cognitiva visual.',
+          'Hierarquizar dados principais, secundários e contextuais.',
+          'Decidir quais dados ficam na camada inicial e quais vão para modais/tooltips.'
+        ]
+      },
+      4: {
+        title: 'Momento 4: Estudos de Layout (SQVID + Regra 6x6)',
+        desc: 'Mapeamento visual sistemático utilizando a Regra 6x6 (Dan Roam / Costa) e dimensões SQVID para definir a gramática gráfica.',
+        actions: [
+          'Associar cada pergunta (Quem, Quanto, Onde...) à sua melhor forma visual.',
+          'Desenhar wireframes conceituais equilibrando zonas densas e espaços de respiro.',
+          'Distribuir as 4 modalidades interativas estrategicamente no poster.'
+        ]
+      },
+      5: {
+        title: 'Momento 5: Implementação',
+        desc: 'Codificação semântica em HTML5, estilização responsiva com CSS e implementação de microinterações em JavaScript puro.',
+        actions: [
+          'Priorizar elementos nativos, como details, button e nav.',
+          'Garantir contraste de cores (WCAG AA mínimo de 4.5:1).',
+          'Testar acessibilidade pelo teclado (Tab, Enter, Esc).'
+        ]
+      }
+    };
+
+    // Quiz Questions Data
+    const QUIZ_QUESTIONS = [
+      {
+        question: 'Um infográfico precisa comparar a evolução temporal de três indicadores sem sobrecarregar a tela ao mesmo tempo. Qual recurso é o mais recomendado?',
+        options: [
+          { text: 'Apenas texto corrido estático em fontes grandes', correct: false },
+          { text: 'Abas (Tabs) ou seletor de séries no gráfico com hover', correct: true },
+          { text: 'Um modal automático que abre a cada 5 segundos', correct: false }
+        ],
+        explanation: 'Correto! O uso de Abas ou botões seletores de métricas permite ao usuário alternar percursos e focar em cada série individualmente, respeitando a capacidade cognitiva.'
+      },
+      {
+        question: 'Qual é a regra áurea ao escolher um recurso dinâmico em HTML5 segundo o princípio central do pôster?',
+        options: [
+          { text: 'O recurso deve responder à finalidade informacional, nunca mero efeito visual', correct: true },
+          { text: 'Usar o maior número de animações 3D possíveis para impressionar o público', correct: false },
+          { text: 'Substituir todas as legendas escritas por efeitos sonoros automáticos', correct: false }
+        ],
+        explanation: 'Exato! A tecnologia e os recursos de interação devem servir à clareza e ao entendimento dos dados, evitando poluição e distrações superficiais.'
+      },
+      {
+        question: 'Na matriz da Regra 6x6, qual representação gráfica e recurso interativo melhor respondem à pergunta "ONDE"?',
+        options: [
+          { text: 'Linha do tempo histórica com botões de avançar ano', correct: false },
+          { text: 'Mapa geográfico ou esquemático com hotspots e zoom de camadas', correct: true },
+          { text: 'Gráfico de pizza com 20 fatias estáticas coloridas', correct: false }
+        ],
+        explanation: 'Perfeito! A dimensão espacial ("Onde") é representada por mapas ou cortes espaciais, onde hotspots e camadas interativas revelam dados georreferenciados sob demanda.'
+      }
+    ];
+
+    let currentQuizIndex = 0;
+    let quizScore = 0;
+    let quizAnswered = false;
+
+    // Initialize Quiz
+    function renderQuiz() {
+      const q = QUIZ_QUESTIONS[currentQuizIndex];
+      quizAnswered = false;
+      document.getElementById('quiz-counter').innerText = `Desafio ${currentQuizIndex + 1} de ${QUIZ_QUESTIONS.length}`;
+      document.getElementById('quiz-question-text').innerText = q.question;
+      
+      const optContainer = document.getElementById('quiz-options-container');
+      optContainer.innerHTML = '';
+      
+      const feedbackBox = document.getElementById('quiz-feedback-box');
+      feedbackBox.className = 'quiz-feedback';
+      feedbackBox.style.display = 'none';
+
+      document.getElementById('quiz-next-btn').style.display = 'none';
+
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'quiz-btn';
+        btn.innerText = opt.text;
+        btn.onclick = () => handleQuizAnswer(btn, opt.correct, q.explanation);
+        optContainer.appendChild(btn);
+      });
+    }
+
+    function handleQuizAnswer(btnEl, isCorrect, explanation) {
+      if (quizAnswered) return;
+      quizAnswered = true;
+
+      const feedbackBox = document.getElementById('quiz-feedback-box');
+      const allButtons = document.querySelectorAll('.quiz-btn');
+
+      allButtons.forEach(b => b.style.pointerEvents = 'none');
+
+      if (isCorrect) {
+        btnEl.classList.add('correct');
+        feedbackBox.className = 'quiz-feedback success';
+        feedbackBox.innerHTML = `<strong>✨ Resposta Correta!</strong> ${explanation}`;
+        quizScore++;
+        document.getElementById('quiz-score-badge').innerText = `Acertos: ${quizScore}`;
+      } else {
+        btnEl.classList.add('incorrect');
+        feedbackBox.className = 'quiz-feedback fail';
+        feedbackBox.innerHTML = `<strong>⚠️ Incorreto.</strong> ${explanation}`;
+      }
+      feedbackBox.style.display = 'block';
+
+      const nextBtn = document.getElementById('quiz-next-btn');
+      if (currentQuizIndex < QUIZ_QUESTIONS.length - 1) {
+        nextBtn.innerText = 'Próxima questão →';
+        nextBtn.style.display = 'inline-block';
+      } else {
+        nextBtn.innerText = 'Recomeçar quiz ↺';
+        nextBtn.style.display = 'inline-block';
+      }
+    }
+
+    function nextQuiz() {
+      if (currentQuizIndex < QUIZ_QUESTIONS.length - 1) {
+        currentQuizIndex++;
+      } else {
+        currentQuizIndex = 0;
+        quizScore = 0;
+        document.getElementById('quiz-score-badge').innerText = 'Acertos: 0';
+      }
+      renderQuiz();
+    }
+
+    // Modal Manager
+    const modalBackdrop = document.getElementById('poster-modal');
+    const modalTitle = document.getElementById('modal-title-text');
+    const modalBody = document.getElementById('modal-body-content');
+
+    function openModal(levelKey) {
+      const data = LEVELS_DATA[levelKey];
+      if (!data) return;
+
+      modalTitle.innerHTML = `<span>🧭</span> ${data.title}`;
+      modalBody.innerHTML = `
+        <p style="margin-top:0; font-size:0.95rem; color:#1e293b;">${data.description}</p>
+        <div style="background:#f8fafc; border-left:4px solid #0f766e; padding:0.75rem; border-radius:0 6px 6px 0; margin-bottom:1rem;">
+          <strong style="color:#0f766e; font-size:0.85rem;">Objetivo Pedagógico:</strong>
+          <p style="margin:0.25rem 0 0 0; font-size:0.85rem; color:#334155;">${data.pedagogy}</p>
+        </div>
+        <p style="margin:0; font-size:0.85rem;"><strong>Componentes típicos deste nível:</strong> ${data.components}</p>
+        
+        <div class="modal-preview-box">
+          <div class="modal-preview-title">Demonstração Interativa Funcional:</div>
+          ${data.demo}
+        </div>
+
+        <div class="modal-preview-title" style="margin-top:1rem;">Exemplo de Marcação Semântica:</div>
+        <pre class="modal-code-snippet"><code>${escapeHTML(data.code)}</code></pre>
+      `;
+
+      showModal();
+    }
+
+    function openComponentModal(compKey) {
+      const comp = COMPONENTS_DATA[compKey];
+      if (!comp) return;
+
+      modalTitle.innerHTML = `<span>🧩</span> ${comp.title}`;
+      modalBody.innerHTML = `
+        <div style="display:inline-block; font-size:0.72rem; font-weight:700; color:#0f766e; background:#ecfdf5; padding:0.2rem 0.5rem; border-radius:4px; margin-bottom:0.75rem;">
+          ${comp.level}
+        </div>
+        <p style="margin-top:0; font-size:0.9rem; color:#1e293b; line-height:1.5;">${comp.purpose}</p>
+        
+        <div style="margin-bottom:1rem;">
+          <strong style="font-size:0.82rem; color:#334155;">Quando utilizar no infográfico:</strong>
+          <p style="margin:0.2rem 0 0 0; font-size:0.85rem; color:#475569;">${comp.whenToUse}</p>
+        </div>
+
+        <div class="modal-preview-box">
+          <div class="modal-preview-title">Microexemplo Interativo:</div>
+          ${comp.interactiveDemo}
+        </div>
+
+        <div class="modal-preview-title" style="margin-top:1rem;">Estrutura do Código HTML5:</div>
+        <pre class="modal-code-snippet"><code>${escapeHTML(comp.code)}</code></pre>
+      `;
+
+      showModal();
+    }
+
+    function openStageModal(stageNum) {
+      const st = COSTA_STAGES[stageNum];
+      if (!st) return;
+
+      modalTitle.innerHTML = `<span>🔬</span> ${st.title} (Costa, 2015)`;
+      
+      let actionsHTML = st.actions.map(a => `<li style="margin-bottom:0.4rem;">${escapeHTML(a)}</li>`).join('');
+
+      modalBody.innerHTML = `
+        <p style="margin-top:0; font-size:0.95rem; color:#0f172a; line-height:1.5;">${st.desc}</p>
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:1rem; margin-top:1rem;">
+          <strong style="font-size:0.85rem; color:#0f766e;">Ações Críticas Nesta Etapa:</strong>
+          <ul style="margin:0.5rem 0 0 1.25rem; padding:0; font-size:0.85rem; color:#334155;">
+            ${actionsHTML}
+          </ul>
+        </div>
+      `;
+
+      showModal();
+    }
+
+    function showModal() {
+      modalBackdrop.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      // Accessibility focus
+      const closeBtn = modalBackdrop.querySelector('.modal-close');
+      if (closeBtn) closeBtn.focus();
+    }
+
+    function closeModal() {
+      modalBackdrop.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function handleBackdropClick(e) {
+      if (e.target === modalBackdrop) {
+        closeModal();
+      }
+    }
+
+    // Keyboard accessibility for modal
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modalBackdrop.classList.contains('active')) {
+        closeModal();
+      }
+    });
+
+    // Helper functions for interactive microdemos inside modals
+    function switchDemoTab(tabNum) {
+      const btn1 = document.getElementById('tab-demo-btn1');
+      const btn2 = document.getElementById('tab-demo-btn2');
+      const content = document.getElementById('tab-demo-content');
+      if (tabNum === 1) {
+        btn1.style.background = '#0f766e';
+        btn1.style.color = '#fff';
+        btn2.style.background = '#f1f5f9';
+        btn2.style.color = '#334155';
+        content.innerText = 'Fundamentos teóricos de infografia e cognição visual.';
+      } else {
+        btn2.style.background = '#0f766e';
+        btn2.style.color = '#fff';
+        btn1.style.background = '#f1f5f9';
+        btn1.style.color = '#334155';
+        content.innerText = 'Estudos de caso aplicados em salas de aula e plataformas EAD.';
+      }
+    }
+
+    let currentStep = 1;
+    function changeStep(delta) {
+      currentStep = Math.max(1, Math.min(3, currentStep + delta));
+      const statusEl = document.getElementById('stepper-status');
+      if (!statusEl) return;
+      if (currentStep === 1) statusEl.innerText = 'Passo 1 de 3: Identificação do Fenômeno';
+      if (currentStep === 2) statusEl.innerText = 'Passo 2 de 3: Cruzamento de Variáveis';
+      if (currentStep === 3) statusEl.innerText = 'Passo 3 de 3: Síntese e Validação Visual';
+    }
+
+    function setTimelineYear(text) {
+      const echo = document.getElementById('timeline-echo');
+      if (echo) echo.innerText = text;
+    }
+
+    function filterMini(category) {
+      const container = document.getElementById('filter-mini-items');
+      if (!container) return;
+      if (category === 'todos') {
+        container.innerHTML = `
+          <span class="badge" style="background:#e0f2fe; color:#0369a1;">Física (Exatas)</span>
+          <span class="badge" style="background:#e0f2fe; color:#0369a1;">Cálculo (Exatas)</span>
+          <span class="badge" style="background:#fef3c7; color:#b45309;">História (Humanas)</span>
+          <span class="badge" style="background:#fef3c7; color:#b45309;">Sociologia (Humanas)</span>
+        `;
+      } else if (category === 'exatas') {
+        container.innerHTML = `
+          <span class="badge" style="background:#e0f2fe; color:#0369a1;">Física (Exatas)</span>
+          <span class="badge" style="background:#e0f2fe; color:#0369a1;">Cálculo (Exatas)</span>
+        `;
+      } else if (category === 'humanas') {
+        container.innerHTML = `
+          <span class="badge" style="background:#fef3c7; color:#b45309;">História (Humanas)</span>
+          <span class="badge" style="background:#fef3c7; color:#b45309;">Sociologia (Humanas)</span>
+        `;
+      }
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Initialize on DOM Ready
+    document.addEventListener('DOMContentLoaded', () => {
+      renderQuiz();
+    });
+  </script>
+<script>
+/* Skip artifact shell — fixed helpers served beside every artifact. */
+(function () {
+  "use strict";
+
+  var fmt = {
+    num: function (v, opts) { return new Intl.NumberFormat("pt-BR", opts || {}).format(v); },
+    brl: function (v) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v); },
+    pct: function (v) { return new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 1 }).format(v); }
+  };
+
+  // axisFmt keeps axis tick labels short (compact notation) so long values
+  // (e.g. full BRL amounts) never clip against the plot edge.
+  function axisFmt(v) {
+    return fmt.num(v, { notation: "compact", maximumFractionDigits: 1 });
+  }
+
+  // format accepts a function OR one of the fmt names ("num" | "brl" | "pct").
+  function coerceFormat(spec) {
+    if (typeof spec === "function") return spec;
+    if (typeof spec === "string" && fmt[spec]) return fmt[spec];
+    return function (v) { return fmt.num(v); };
+  }
+
+  function accent() {
+    return getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#2563eb";
+  }
+  function mutedColor() {
+    return getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() || "#5b6472";
+  }
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+  function frame(el, w, h) {
+    var svg = svgEl("svg", { viewBox: "0 0 " + w + " " + h, role: "img" });
+    el.innerHTML = "";
+    el.appendChild(svg);
+    return svg;
+  }
+
+  // maxOf guards the axis scale: empty values would give -Infinity (truthy,
+  // so "|| 1" can't catch it) and a non-positive max would flip the chart.
+  function maxOf(values) {
+    var m = values.length ? Math.max.apply(null, values) : 0;
+    return m > 0 ? m : 1;
+  }
+
+  // bar(el, {labels:[], values:[], color?, format?}) — vertical bar chart.
+  function bar(el, cfg) {
+    var W = 640, H = 280, padL = 46, padB = 30, padT = 12;
+    var svg = frame(el, W, H);
+    var max = maxOf(cfg.values);
+    var n = cfg.values.length;
+    var plotW = W - padL - 12, plotH = H - padT - padB;
+    var step = plotW / n, bw = Math.min(step * 0.62, 64);
+    var color = cfg.color || accent();
+    var f = coerceFormat(cfg.format);
+    for (var g = 0; g <= 4; g++) {
+      var gy = padT + plotH - (plotH * g) / 4;
+      svg.appendChild(svgEl("line", { x1: padL, y1: gy, x2: W - 12, y2: gy, stroke: "currentColor", "stroke-opacity": 0.08 }));
+      var lbl = svgEl("text", { x: padL - 8, y: gy + 4, "text-anchor": "end", "font-size": 10, fill: mutedColor() });
+      lbl.textContent = axisFmt((max * g) / 4);
+      svg.appendChild(lbl);
+    }
+    cfg.values.forEach(function (v, i) {
+      var bh = Math.max(0, (v / max) * plotH);
+      var x = padL + i * step + (step - bw) / 2;
+      var y = padT + plotH - bh;
+      var r = svgEl("rect", { x: x, y: y, width: bw, height: bh, rx: 4, fill: color });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + f(v);
+      r.appendChild(t);
+      svg.appendChild(r);
+      var tx = svgEl("text", { x: x + bw / 2, y: H - 10, "text-anchor": "middle", "font-size": 11, fill: mutedColor() });
+      tx.textContent = cfg.labels[i];
+      svg.appendChild(tx);
+    });
+  }
+
+  // line(el, {labels:[], values:[], color?, format?}) — single-series line.
+  function line(el, cfg) {
+    var W = 640, H = 280, padL = 46, padB = 30, padT = 12;
+    var svg = frame(el, W, H);
+    var max = maxOf(cfg.values);
+    var n = cfg.values.length;
+    var plotW = W - padL - 16, plotH = H - padT - padB;
+    var color = cfg.color || accent();
+    var f = coerceFormat(cfg.format);
+    for (var g = 0; g <= 4; g++) {
+      var gy = padT + plotH - (plotH * g) / 4;
+      svg.appendChild(svgEl("line", { x1: padL, y1: gy, x2: W - 16, y2: gy, stroke: "currentColor", "stroke-opacity": 0.08 }));
+      var lbl = svgEl("text", { x: padL - 8, y: gy + 4, "text-anchor": "end", "font-size": 10, fill: mutedColor() });
+      lbl.textContent = axisFmt((max * g) / 4);
+      svg.appendChild(lbl);
+    }
+    var pts = cfg.values.map(function (v, i) {
+      var x = padL + (n === 1 ? plotW / 2 : (plotW * i) / (n - 1));
+      var y = padT + plotH - (v / max) * plotH;
+      return [x, y];
+    });
+    var d = pts.map(function (p, i) { return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(" ");
+    svg.appendChild(svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2, "stroke-linejoin": "round" }));
+    pts.forEach(function (p, i) {
+      var c = svgEl("circle", { cx: p[0], cy: p[1], r: 3.5, fill: color });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + f(cfg.values[i]);
+      c.appendChild(t);
+      svg.appendChild(c);
+      var tx = svgEl("text", { x: p[0], y: H - 10, "text-anchor": "middle", "font-size": 11, fill: mutedColor() });
+      tx.textContent = cfg.labels[i];
+      svg.appendChild(tx);
+    });
+  }
+
+  // donut(el, {labels:[], values:[], colors?}) — donut with center total.
+  function donut(el, cfg) {
+    var W = 320, H = 280, cx = W / 2, cy = H / 2, R = 92, r = 58;
+    var svg = frame(el, W, H);
+    var total = cfg.values.reduce(function (a, b) { return a + b; }, 0) || 1;
+    var palette = cfg.colors || [accent(), "#1baf7a", "#eda100", "#e34948", "#4a3aa7", "#e87ba4"];
+    var a0 = -Math.PI / 2;
+    cfg.values.forEach(function (v, i) {
+      var a1 = a0 + (v / total) * Math.PI * 2;
+      var large = a1 - a0 > Math.PI ? 1 : 0;
+      var p = ["M", cx + R * Math.cos(a0), cy + R * Math.sin(a0),
+        "A", R, R, 0, large, 1, cx + R * Math.cos(a1), cy + R * Math.sin(a1),
+        "L", cx + r * Math.cos(a1), cy + r * Math.sin(a1),
+        "A", r, r, 0, large, 0, cx + r * Math.cos(a0), cy + r * Math.sin(a0), "Z"].join(" ");
+      var path = svgEl("path", { d: p, fill: palette[i % palette.length] });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + fmt.num(v) + " (" + fmt.pct(v / total) + ")";
+      path.appendChild(t);
+      svg.appendChild(path);
+      a0 = a1;
+    });
+    var center = svgEl("text", { x: cx, y: cy + 5, "text-anchor": "middle", "font-size": 20, "font-weight": 650, fill: "currentColor" });
+    center.textContent = fmt.num(total);
+    svg.appendChild(center);
+  }
+
+  window.skipShell = { fmt: fmt };
+  window.skipChart = { bar: bar, line: line, donut: donut };
+})();
+
+</script>
+</body>
+</html>
